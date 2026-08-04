@@ -1,0 +1,83 @@
+{
+  "version": "AI Strategy 3.1 / Mobile & Public Behavior Inference",
+  "advisorDefault": "off",
+  "reviewRegression": {
+    "initialHand": {
+      "oldTop": "四条",
+      "oldFaRank": 8,
+      "newTop": "发",
+      "newTopShanten": 3,
+      "newTopUkeire": 71,
+      "note": "修复了深度候选预筛选/MC回退偏置与孤立字牌估值问题"
+    },
+    "claimScoring": {
+      "fixed98vs58Removed": true,
+      "postCallDiscardSearch": true,
+      "openHandCost": true,
+      "shantenRegressionPenalty": true,
+      "ukeireCollapsePenalty": true
+    }
+  },
+  "informationBoundary": {
+    "publicDecisionView": {
+      "ownConcealedHandAllowed": true,
+      "opponentConcealedHandsAllowed": false,
+      "publicDiscardsAllowed": true,
+      "publicMeldsAllowed": true,
+      "publicMissingSuitAllowed": true,
+      "wallCountAllowed": true,
+      "wallOrderAllowed": false,
+      "nextReplacementTileAllowed": false
+    },
+    "runtimeAuditPassed": true,
+    "hiddenStateInvariance": {
+      "changedOpponentHands": true,
+      "changedRealWallContentsAndOrder": true,
+      "sameDecision": true,
+      "sameTopRows": true
+    }
+  },
+  "publicBehaviorInference": {
+    "usesOrderedPublicDiscards": true,
+    "usesRecentSixDiscards": true,
+    "usesSpecificChiPongKongTiles": true,
+    "usesOpponentConcealedHands": false,
+    "pongSixBambooPreferredSuitDetected": "bamboo",
+    "runtimeProfilePassed": true
+  },
+  "mobileInteraction": {
+    "portraitActionHandOverlap": false,
+    "landscapeActionHandOverlap": false,
+    "sourcePlayerShown": true,
+    "targetTileShown": true,
+    "chiCombinationsShown": true,
+    "selfGangTargetsShown": true,
+    "sharedThemeCount": 7
+  },
+  "tileAssets": {
+    "sharedResolverOnMobileAndDesktop": true,
+    "radicalMaxNineCharactersCorrection": true,
+    "ornateThemeCanonicalIdentityGuard": true
+  },
+  "effects": {
+    "normalMs": {"pong": 1900, "chi": 2000, "gang": 2350, "hu": 3200},
+    "reducedMotionMs": {"pong": 1482, "chi": 1560, "gang": 1833, "hu": 2496},
+    "normalPassed": true,
+    "reducedMotionPassed": true
+  },
+  "layoutRegression": {
+    "settleWaitMs": 400,
+    "viewports": [
+      [1672, 941],
+      [1366, 900],
+      [1112, 948],
+      [768, 1024],
+      [844, 390],
+      [390, 844]
+    ],
+    "passed": true
+  },
+  "sourceSyntax": {
+    "aiStrategyPatchNodeCheck": true
+  }
+}

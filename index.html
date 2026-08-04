@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3a27">
+<title>赤锋牌局 · 四川麻将</title>
+<link rel="stylesheet" href="assets/styles.css">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+<div id="lobby">
+  <div class="lobby-shell">
+    <div class="lobby-head">
+      <h1><span class="lobby-cn">模式选择</span><span class="lobby-en"> // SELECT BATTLE</span></h1>
+      <p>选择规则与 AI 决策强度，开启本地四人牌局</p>
+    </div>
+    <div class="mode-grid">
+      <section class="mode-card selected" data-mode="sichuan" onclick="selectLobbyMode('sichuan')">
+        <h2>四川麻将 · 血战到底</h2>
+        <div class="mode-desc">108张数牌 · 定缺 · 不可吃 · 一炮多响 · 三家胡后结束</div>
+        <div class="mode-rules">
+          <div>定缺：AI会评估三门数量与牌型质量，优先处理缺门。</div>
+          <div>操作：仅碰 / 杠 / 胡，不提供“吃”。胡牌玩家退出，剩余玩家继续血战。</div>
+          <div>AI重点：定缺效率、搭子保留、有效进张；进阶档加入可见牌安全度。</div>
+        </div>
+        <div class="entry-label">选择川麻 AI</div>
+        <div class="entry-row">
+          <button class="entry-btn" data-mode="sichuan" data-ai="beginner" onclick="event.stopPropagation();selectLobbyAi('beginner')"><b>入门</b><small>规则型 + 较多随机</small></button>
+          <button class="entry-btn" data-mode="sichuan" data-ai="standard" onclick="event.stopPropagation();selectLobbyAi('standard')"><b>标准</b><small>牌型与搭子评估</small></button>
+          <button class="entry-btn" data-mode="sichuan" data-ai="advanced" onclick="event.stopPropagation();selectLobbyAi('advanced')"><b>进阶</b><small>进张 + 安全度</small></button>
+        </div>
+      </section>
+      <section class="mode-card" data-mode="traditional" onclick="selectLobbyMode('traditional')">
+        <h2>传统麻将 · 基础四人</h2>
+        <div class="mode-desc">136张含字牌 · 无定缺 · 可吃碰杠 · 第一家胡牌即结束</div>
+        <div class="mode-rules">
+          <div>牌组：万条筒 + 东南西北中发白；本基础模板不加入花牌。</div>
+          <div>操作：下家可吃，任意玩家可碰 / 杠；优先级为胡 ＞ 杠/碰 ＞ 吃。</div>
+          <div>AI重点：字牌处理、吃碰收益与牌型完整度；进阶档加入有效进张与防守评估。</div>
+        </div>
+        <div class="entry-label">选择传统麻将 AI</div>
+        <div class="entry-row">
+          <button class="entry-btn" data-mode="traditional" data-ai="beginner" onclick="event.stopPropagation();selectLobbyAi('beginner')"><b>入门</b><small>基础规则 + 较多随机</small></button>
+          <button class="entry-btn" data-mode="traditional" data-ai="standard" onclick="event.stopPropagation();selectLobbyAi('standard')"><b>标准</b><small>吃碰与牌型评估</small></button>
+          <button class="entry-btn" data-mode="traditional" data-ai="advanced" onclick="event.stopPropagation();selectLobbyAi('advanced')"><b>进阶</b><small>进张 + 防守评估</small></button>
+        </div>
+      </section>
+    </div>
+    <div class="lobby-control-deck">
+      <div class="lobby-difficulty">
+        <div class="lobby-deck-title">AI 难度选择 <span>// DIFFICULTY</span></div>
+        <div class="difficulty-row">
+          <button class="difficulty-btn" data-ai="beginner" onclick="selectLobbyAi('beginner')"><b>入门 AI</b><small>适合新手 · 轻松体验</small></button>
+          <button class="difficulty-btn selected" data-ai="standard" onclick="selectLobbyAi('standard')"><b>标准 AI</b><small>推荐难度 · 均衡挑战</small></button>
+          <button class="difficulty-btn" data-ai="advanced" onclick="selectLobbyAi('advanced')"><b>进阶 AI</b><small>高手对决 · 极限挑战</small></button>
+        </div>
+        <label class="mobile-theme-panel">手机 / PC 共用牌面素材库
+          <select id="mobileTileThemeSelect" onchange="setTileTheme(this.value)" aria-label="手机牌面主题">
+            <option value="ivory">宫廷象牙（清晰标准）</option><option value="brocade">锦绣繁章</option><option value="radical-max">鏏金万象</option>
+            <option value="deconstruct">断界构成</option><option value="radical-deconstruct">碎界宣言</option><option value="constructivist">红星构成</option><option value="radical-constructivist">赤潮先锋</option>
+          </select>
+        </label>
+      </div>
+      <aside class="lobby-compare">
+        <div class="compare-head">规则对比 // RULE SET</div>
+        <div id="lobbyCompareBody"></div>
+      </aside>
+      <button class="start-match-btn" onclick="startSelectedMode()"><span>开始对局</span><small>START GAME</small></button>
+    </div>
+    <div class="lobby-note">当前只展示已实现的两套规则；未实现玩法不做“视觉占位卡”，避免把素材完整度误当成功能完整度。</div>
+  </div>
+</div>
+<div id="gameViewport"><div id="gameStage">
+<div id="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">川</div>
+    <div class="brand-text">
+      <div class="brand-kicker">赤锋牌局 / RED EDGE ARENA</div>
+      <div class="brand-title"><span id="modeTitle">四川麻将 · 血战到底</span> <span class="wall-chip">牌墙 <b id="wallCnt">-</b></span></div>
+      <div class="brand-sub"><span id="modeSub"></span><span class="ai-chip" id="aiChip">标准AI</span></div>
+    </div>
+  </div>
+  <div class="scores" id="scoreBar"></div>
+  <div class="top-actions">
+    <label class="theme-picker" title="切换牌面风格，不影响当前牌局"><span>牌面</span><select id="tileThemeSelect" onchange="setTileTheme(this.value)" aria-label="牌面主题">
+      <option value="ivory">宫廷象牙</option>
+      <option value="brocade">锦绣繁章</option>
+      <option value="radical-max">鏏金万象</option>
+      <option value="deconstruct">断界构成</option>
+      <option value="radical-deconstruct">碎界宣言</option>
+      <option value="constructivist">红星构成</option>
+      <option value="radical-constructivist">赤潮先锋</option>
+    </select></label>
+    <button id="advisorToggleBtn" class="ghost-btn advisor-btn" onclick="toggleAdvisorPanel()" title="AI 辅助默认关闭；点击打开设置与分析窗口">AI 辅助 · 关</button>
+    <button class="ghost-btn" onclick="showRules()">规则</button>
+    <button class="ghost-btn" onclick="showLobby()">切换模式</button>
+    <button onclick="startRound()" aria-label="重新开局">重新开局</button>
+  </div>
+</div>
+<div id="advisorPanel" aria-live="polite">
+  <div class="advisor-head">
+    <div>
+      <div class="advisor-title">AI 决策终端</div>
+      <div class="advisor-sub">默认关闭 · 开启后仅使用公开牌局信息 · 0–100 为当前节点相对价值分</div>
+    </div>
+    <div class="advisor-controls">
+      <select id="advisorModeSelect" onchange="setAdvisorMode(this.value)" aria-label="AI辅助强度">
+        <option value="off" selected>关闭</option>
+        <option value="fast">实时</option>
+        <option value="deep">深度</option>
+      </select>
+      <button onclick="refreshAdvisor(true)" title="重新分析">刷新</button>
+      <button onclick="toggleAdvisorPanel()" title="关闭分析窗口">×</button>
+    </div>
+  </div>
+  <div class="advisor-scroll" id="advisorContent">
+    <div class="advisor-empty">AI 辅助默认关闭。需要时在右上角打开窗口并选择“实时”或“深度”。</div>
+  </div>
+</div>
+
+<div id="table">
+  <div class="opp" id="opp2"></div>
+  <div class="midrow">
+    <div class="opp" id="opp3" style="flex-direction:column;align-items:flex-start;"></div>
+    <div id="discboard"></div>
+    <div class="opp" id="opp1" style="flex-direction:column;align-items:flex-start;"></div>
+  </div>
+</div>
+<div id="bottom">
+  <div id="actions"></div>
+  <div class="opp" id="opp0"></div>
+  <div id="mymelds"></div>
+  <div id="hand"></div>
+</div>
+<div id="log"></div>
+</div></div>
+<div id="modal"><div class="box" id="modalBox"></div></div>
+
+<script src="assets/app.js"></script>
+
+
+<script src="assets/ai-strategy-v3-public-info-patch.js"></script>
+</body>
+</html>
