@@ -29,9 +29,12 @@ Then open <http://localhost:8000/>.
 
 - [`AI策略3_改进说明.md`](AI策略3_改进说明.md) records the strategy changes.
 - [`AI策略3_验证摘要.json`](AI策略3_验证摘要.json) records the validation summary.
+- [`original/四川麻将_AI策略3_特效延长_严格公开信息版.html`](original/四川麻将_AI策略3_特效延长_严格公开信息版.html)
+  is the original self-contained HTML for archival and direct download.
 - `tools/split_html.py` documents and repeats the one-time split from the
   original self-contained HTML.
 
 The original single-file HTML was split into maintainable assets without
-changing the DOM, script order, or image bytes. The source monolith is not kept
-in the current tree; it remains available in the original Downloads folder.
+changing the DOM, script order, or image bytes. The original monolith is kept
+under `original/` for archival comparison; `index.html` is the maintainable
+entry point.
