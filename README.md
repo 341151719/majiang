@@ -29,6 +29,7 @@ Then open <http://localhost:8000/>.
 
 - [`AI策略3_改进说明.md`](AI策略3_改进说明.md) records the strategy changes.
 - [`AI策略3_验证摘要.json`](AI策略3_验证摘要.json) records the validation summary.
+- [`AI策略4_实现与Benchmark.md`](AI策略4_实现与Benchmark.md) records the expected-utility core, its validation boundaries, and the external deep-learning benchmark plan.
 - [`original/四川麻将_AI策略3_特效延长_严格公开信息版.html`](original/四川麻将_AI策略3_特效延长_严格公开信息版.html)
   is the original self-contained HTML for archival and direct download.
 - `tools/split_html.py` documents and repeats the one-time split from the
