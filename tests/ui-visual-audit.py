@@ -282,9 +282,36 @@ async def audit() -> dict:
         await freeze_table(page)
         await page.screenshot(path=str(OUTPUT / "phone-portrait-table.png"))
         built_in = await page.evaluate("window.__auditRedEdgeVia?.() || null")
+        ai_v4 = await page.evaluate(
+            """() => {
+              const api=window.__redEdgeAiV4;
+              if(!api)return {available:false};
+              const view=api.buildDecisionView(0);
+              const start=performance.now();
+              const cold=api.buildDiscardRows(state.players[0],false);
+              const coldMs=performance.now()-start;
+              const warm=[];
+              for(let i=0;i<5;i++){
+                const tick=performance.now();
+                api.buildDiscardRows(state.players[0],false);
+                warm.push(performance.now()-tick);
+              }
+              return {
+                available:true,version:api.version,coldMs,warmMaxMs:Math.max(...warm),
+                candidates:cold.rows.length,pareto:cold.rows.filter(row=>row.pareto).length,
+                finite:cold.rows.every(row=>Number.isFinite(row.raw)&&Number.isFinite(row.expectedDealLoss)),
+                publicViewNoWall:!Object.prototype.hasOwnProperty.call(view,'wall'),
+                publicViewNoOpponentHands:view.players.every(player=>!Object.prototype.hasOwnProperty.call(player,'hand'))
+              };
+            }"""
+        )
         top_button = await visible_rect(page, "#topbar button")
         check(bool(top_button and top_button["width"] >= 44 and top_button["height"] >= 44), "portrait top toolbar control is below 44px")
         check(not built_in or built_in.get("ok", False), f"built-in portrait layout audit failed: {built_in}")
+        check(ai_v4.get("available", False), f"AI Strategy 4.0 did not load: {ai_v4}")
+        check(ai_v4.get("finite", False) and ai_v4.get("candidates", 0) > 0 and ai_v4.get("pareto", 0) > 0, f"AI Strategy 4.0 returned invalid candidates: {ai_v4}")
+        check(ai_v4.get("publicViewNoWall", False) and ai_v4.get("publicViewNoOpponentHands", False), f"AI Strategy 4.0 leaked hidden information: {ai_v4}")
+        check(ai_v4.get("coldMs", 1001) < 1000 and ai_v4.get("warmMaxMs", 201) < 200, f"AI Strategy 4.0 browser latency regression: {ai_v4}")
 
         # Regression: all four seats must keep exposed melds compact after sustained redraws.
         await render_stress_melds(page)
@@ -360,7 +387,7 @@ async def audit() -> dict:
         check(all(r["height"] >= 44 for r in action_rects), f"review actions below 44px: {action_rects}")
         check(side_display == "none", "desktop review side panel should be collapsed on phone")
         await page.screenshot(path=str(OUTPUT / "phone-portrait-review.png"))
-        results.append({"state": "phone-portrait-game", "topButton": top_button, "advisorControls": controls, "melds": all_meld_metrics, "reviewBox": review_box, "reviewTitle": title, "reviewActions": action_rects, "builtIn": built_in, "errors": errors})
+        results.append({"state": "phone-portrait-game", "topButton": top_button, "advisorControls": controls, "melds": all_meld_metrics, "reviewBox": review_box, "reviewTitle": title, "reviewActions": action_rects, "builtIn": built_in, "aiV4": ai_v4, "errors": errors})
         check(not errors, f"portrait game page errors: {errors}")
         await page.close()
 
