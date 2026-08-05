@@ -166,3 +166,50 @@ html[data-ui-layout="phone-landscape"] #gameStage #mymelds[data-meld-count="3"]{
 html[data-ui-layout="phone-landscape"] #gameStage #mymelds[data-meld-count="3"] ~ #hand{left:370px!important}
 html[data-ui-layout="phone-landscape"] #gameStage #mymelds[data-meld-count="4"]{width:320px!important}
 html[data-ui-layout="phone-landscape"] #gameStage #mymelds[data-meld-count="4"] ~ #hand{left:430px!important}
+
+/* Opponent exposed melds use their own compact geometry. Without this scope they
+   inherit the large global phone .tile.small profile and cover the table. */
+html[data-ui-layout="phone-portrait"] #gameStage .opp>.exposed-melds,
+html[data-ui-layout="phone-landscape"] #gameStage .opp>.exposed-melds{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  align-items:flex-start!important;
+  justify-content:flex-start!important;
+  gap:2px!important;
+  overflow:visible!important;
+}
+html[data-ui-layout="phone-portrait"] #gameStage .opp>.exposed-melds .meld,
+html[data-ui-layout="phone-landscape"] #gameStage .opp>.exposed-melds .meld{
+  flex:0 0 auto!important;
+  padding:2px!important;
+  gap:0!important;
+  margin:0!important;
+}
+
+html[data-ui-layout="phone-portrait"] #gameStage #opp2>.exposed-melds .tile.small{
+  --tile-w:14px!important;
+  --tile-h:19px!important;
+}
+html[data-ui-layout="phone-portrait"] #gameStage #opp1>.exposed-melds,
+html[data-ui-layout="phone-portrait"] #gameStage #opp3>.exposed-melds{
+  flex-direction:column!important;
+}
+html[data-ui-layout="phone-portrait"] #gameStage #opp1>.exposed-melds .tile.small,
+html[data-ui-layout="phone-portrait"] #gameStage #opp3>.exposed-melds .tile.small{
+  --tile-w:10px!important;
+  --tile-h:14px!important;
+}
+
+html[data-ui-layout="phone-landscape"] #gameStage #opp2>.exposed-melds .tile.small{
+  --tile-w:15px!important;
+  --tile-h:20px!important;
+}
+html[data-ui-layout="phone-landscape"] #gameStage #opp1>.exposed-melds,
+html[data-ui-layout="phone-landscape"] #gameStage #opp3>.exposed-melds{
+  flex-direction:column!important;
+}
+html[data-ui-layout="phone-landscape"] #gameStage #opp1>.exposed-melds .tile.small,
+html[data-ui-layout="phone-landscape"] #gameStage #opp3>.exposed-melds .tile.small{
+  --tile-w:11px!important;
+  --tile-h:15px!important;
+}
