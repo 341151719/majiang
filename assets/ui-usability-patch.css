@@ -1,0 +1,126 @@
+/* UI usability/readability layer. Load after assets/styles.css. */
+:root{--ui-focus:#ffe071;--ui-focus-shadow:rgba(255,224,113,.28)}
+button:focus-visible,select:focus-visible,a:focus-visible,[role="button"]:focus-visible,.tile.clickable:focus-visible{
+  outline:3px solid var(--ui-focus)!important;outline-offset:3px!important;box-shadow:0 0 0 5px var(--ui-focus-shadow)!important
+}
+.mode-card[role="button"]:focus-visible{outline:4px solid var(--ui-focus)!important;outline-offset:5px!important}
+#log,#advisorPanel .advisor-scroll,#modal .box,#modal .review-body,#modal .review-side,.rule-list{user-select:text!important;-webkit-user-select:text!important}
+#modal[aria-modal="true"] .box:focus-visible{outline:3px solid var(--ui-focus)!important;outline-offset:2px!important}
+
+@media (pointer:coarse){button,select,[role="button"]{touch-action:manipulation}}
+
+html[data-ui-layout="phone-portrait"] #topbar button{
+  width:54px!important;height:54px!important;min-width:54px!important;min-height:54px!important;font-size:9px!important;line-height:1.15!important
+}
+html[data-ui-layout="phone-portrait"] .top-actions{width:228px!important;gap:1px!important}
+html[data-ui-layout="phone-portrait"] #scoreBar .score-name{font-size:8px!important;line-height:1.05!important}
+html[data-ui-layout="phone-portrait"] #scoreBar .score-value{font-size:10px!important;line-height:1!important}
+html[data-ui-layout="phone-portrait"] #opp2 .seat-name,
+html[data-ui-layout="phone-portrait"] #opp0 .seat-name,
+html[data-ui-layout="phone-portrait"] #opp1 .seat-name,
+html[data-ui-layout="phone-portrait"] #opp3 .seat-name{font-size:8px!important;line-height:1.05!important}
+html[data-ui-layout="phone-portrait"] #opp2 .seat-score,
+html[data-ui-layout="phone-portrait"] #opp0 .seat-score{font-size:8px!important;line-height:1!important}
+html[data-ui-layout="phone-portrait"] .dz-title{font-size:7px!important;line-height:1.1!important}
+html[data-ui-layout="phone-portrait"] #log{font-size:8px!important;line-height:13px!important}
+
+/* Portrait lobby: reserve a real header block and remove the dead vertical gap inside cards. */
+html[data-ui-layout="phone-portrait"] #lobby .lobby-shell{padding-top:106px!important}
+html[data-ui-layout="phone-portrait"] #lobby .lobby-head{left:14px!important;right:12px!important;top:13px!important;height:80px!important;transform:none!important;overflow:visible!important}
+html[data-ui-layout="phone-portrait"] #lobby .lobby-head h1{display:block!important;font-size:30px!important;line-height:1!important;white-space:normal!important}
+html[data-ui-layout="phone-portrait"] #lobby .lobby-head .lobby-cn{display:block!important}
+html[data-ui-layout="phone-portrait"] #lobby .lobby-head .lobby-en{display:block!important;margin-top:7px!important;font:900 17px/1 Arial,sans-serif!important;letter-spacing:.02em!important}
+html[data-ui-layout="phone-portrait"] #lobby .mode-grid{padding-top:0!important;gap:12px!important}
+html[data-ui-layout="phone-portrait"] #lobby .mode-card{
+  height:auto!important;min-height:270px!important;padding:18px 15px 15px!important;display:flex!important;flex-direction:column!important;gap:9px!important;overflow:visible!important
+}
+html[data-ui-layout="phone-portrait"] #lobby .mode-card h2{font-size:21px!important;line-height:1.16!important}
+html[data-ui-layout="phone-portrait"] #lobby .mode-desc{margin-top:0!important;font-size:10px!important;line-height:1.35!important}
+html[data-ui-layout="phone-portrait"] #lobby .mode-rules{position:static!important;display:grid!important;gap:5px!important;margin-top:auto!important}
+html[data-ui-layout="phone-portrait"] #lobby .mode-rules div{font-size:9px!important;line-height:1.45!important;padding:6px 7px!important}
+html[data-ui-layout="phone-portrait"] #lobby .difficulty-btn small{font-size:9px!important;line-height:1.25!important}
+html[data-ui-layout="phone-portrait"] #lobby .lobby-note{font-size:9px!important;line-height:1.45!important}
+
+/* Advisor sheet: controls are real touch targets and secondary labels remain readable. */
+html[data-ui-layout="phone-portrait"] #advisorPanel .advisor-head{min-height:72px!important;align-items:flex-start!important;padding:10px!important}
+html[data-ui-layout="phone-portrait"] #advisorPanel .advisor-controls{flex:0 0 auto!important;gap:3px!important}
+html[data-ui-layout="phone-portrait"] #advisorPanel .advisor-controls select,
+html[data-ui-layout="phone-portrait"] #advisorPanel .advisor-controls button{min-width:44px!important;height:44px!important;padding:4px!important;font-size:9px!important}
+html[data-ui-layout="phone-portrait"] #advisorPanel .advisor-controls select{width:54px!important}
+html[data-ui-layout="phone-portrait"] #advisorPanel .advisor-sub{font-size:9px!important;line-height:1.35!important;max-width:190px!important}
+html[data-ui-layout="phone-portrait"] #advisorPanel .advisor-metric small{font-size:8px!important;line-height:1.2!important}
+html[data-ui-layout="phone-portrait"] #advisorPanel .advisor-note{font-size:9px!important;line-height:1.45!important}
+
+/* Phone review: replace the squeezed desktop two-column report with a readable single column. */
+html[data-ui-layout="phone-portrait"] #modal{padding:8px!important;align-items:center!important}
+html[data-ui-layout="phone-portrait"] #modal .review-box{
+  width:calc(100vw - 16px)!important;max-width:374px!important;height:auto!important;max-height:calc(100dvh - 16px)!important;padding:14px!important;overflow:auto!important;display:block!important
+}
+html[data-ui-layout="phone-portrait"] .review-headline{display:grid!important;grid-template-columns:58px minmax(0,1fr)!important;gap:10px!important;align-items:start!important}
+html[data-ui-layout="phone-portrait"] .review-grade{width:56px!important;height:56px!important;font-size:26px!important}
+html[data-ui-layout="phone-portrait"] .review-title h2{font-size:22px!important;line-height:1.15!important;word-break:keep-all!important}
+html[data-ui-layout="phone-portrait"] .review-title p{font-size:9px!important;line-height:1.35!important;word-break:normal!important}
+html[data-ui-layout="phone-portrait"] .review-result{grid-column:1/-1!important;display:flex!important;justify-content:space-between!important;align-items:center!important;padding:7px 9px!important;background:#151719!important}
+html[data-ui-layout="phone-portrait"] .review-result b{font-size:13px!important}.review-result small{font-size:9px!important}
+html[data-ui-layout="phone-portrait"] .review-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin-top:8px!important}
+html[data-ui-layout="phone-portrait"] .review-metric{min-height:52px!important;padding:7px!important}.review-metric b{font-size:15px!important}.review-metric small{font-size:9px!important;line-height:1.25!important}
+html[data-ui-layout="phone-portrait"] .review-main-grid{display:block!important;margin-top:9px!important}
+html[data-ui-layout="phone-portrait"] .review-tabs{display:grid!important;grid-template-columns:1fr 1fr!important;position:sticky!important;top:-14px!important;z-index:2!important;background:#0d0f10!important;padding-top:4px!important}
+html[data-ui-layout="phone-portrait"] .review-tab{min-height:44px!important;padding:7px!important;font-size:11px!important;white-space:normal!important}
+html[data-ui-layout="phone-portrait"] .review-body{max-height:31vh!important;overflow:auto!important;padding:8px!important;font-size:10px!important;line-height:1.45!important}
+html[data-ui-layout="phone-portrait"] .review-body h3{font-size:12px!important;line-height:1.25!important;word-break:keep-all!important}
+html[data-ui-layout="phone-portrait"] .review-side{display:none!important}
+html[data-ui-layout="phone-portrait"] .review-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;margin-top:9px!important;position:sticky!important;bottom:-14px!important;background:#0d0f10!important;padding:7px 0 3px!important}
+html[data-ui-layout="phone-portrait"] .review-actions button{min-width:0!important;min-height:44px!important;margin:0!important;padding:7px!important;font-size:11px!important;white-space:normal!important}
+
+/* Landscape lobby: use the whole 844×390 stage instead of stacking desktop panels. */
+html[data-ui-layout="phone-landscape"] #lobby{overflow:hidden!important}
+html[data-ui-layout="phone-landscape"] #lobby .lobby-shell{width:844px!important;height:390px!important;min-height:390px!important;padding:0!important;overflow:hidden!important}
+html[data-ui-layout="phone-landscape"] #lobby .lobby-head{left:13px!important;top:8px!important;right:auto!important;height:43px!important;transform:none!important}
+html[data-ui-layout="phone-landscape"] #lobby .lobby-head h1{font-size:27px!important;line-height:1!important;white-space:nowrap!important}
+html[data-ui-layout="phone-landscape"] #lobby .lobby-head h1::after{display:none!important}
+html[data-ui-layout="phone-landscape"] #lobby .mode-grid{position:absolute!important;left:10px!important;top:55px!important;width:520px!important;height:248px!important;min-height:0!important;padding:0!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;align-items:stretch!important}
+html[data-ui-layout="phone-landscape"] #lobby .mode-card{width:auto!important;height:248px!important;min-height:0!important;padding:36px 13px 12px!important;transform:none!important;overflow:hidden!important;box-shadow:7px 8px #000!important}
+html[data-ui-layout="phone-landscape"] #lobby .mode-card.selected{transform:none!important}
+html[data-ui-layout="phone-landscape"] #lobby .mode-card h2{font-size:17px!important;line-height:1.15!important;padding:5px 6px!important}
+html[data-ui-layout="phone-landscape"] #lobby .mode-desc{font-size:8px!important;line-height:1.25!important;padding:4px 5px!important}
+html[data-ui-layout="phone-landscape"] #lobby .mode-rules{left:10px!important;right:10px!important;bottom:9px!important;gap:3px!important}
+html[data-ui-layout="phone-landscape"] #lobby .mode-rules div{font-size:7px!important;line-height:1.22!important;padding:4px 5px!important}
+html[data-ui-layout="phone-landscape"] #lobby .lobby-control-deck{position:absolute!important;left:540px!important;right:10px!important;top:55px!important;width:auto!important;height:325px!important;min-height:0!important}
+html[data-ui-layout="phone-landscape"] #lobby .lobby-compare{position:absolute!important;left:0!important;right:0!important;top:0!important;width:294px!important;min-height:0!important;height:226px!important;padding:48px 12px 8px!important;overflow:hidden!important}
+html[data-ui-layout="phone-landscape"] #lobby .compare-head{top:15px!important;font-size:16px!important}
+html[data-ui-layout="phone-landscape"] #lobby .compare-row{padding:5px 3px!important;font-size:8px!important}
+html[data-ui-layout="phone-landscape"] #lobby .start-match-btn{position:absolute!important;right:0!important;top:236px!important;width:270px!important;height:68px!important;transform:none!important;box-shadow:7px 7px #36070b!important}
+html[data-ui-layout="phone-landscape"] #lobby .start-match-btn span{font-size:27px!important}
+html[data-ui-layout="phone-landscape"] #lobby .lobby-difficulty{position:absolute!important;left:-530px!important;right:304px!important;bottom:0!important;width:520px!important;height:70px!important;padding:5px 8px!important}
+html[data-ui-layout="phone-landscape"] #lobby .lobby-deck-title{font-size:9px!important}
+html[data-ui-layout="phone-landscape"] #lobby .difficulty-row{gap:5px!important;margin-top:4px!important}
+html[data-ui-layout="phone-landscape"] #lobby .difficulty-btn{min-width:0!important;flex:1!important;height:46px!important;padding:4px!important}
+html[data-ui-layout="phone-landscape"] #lobby .difficulty-btn b{font-size:10px!important}.difficulty-btn small{font-size:7px!important}
+html[data-ui-layout="phone-landscape"] #lobby .mobile-theme-panel,html[data-ui-layout="phone-landscape"] #lobby .lobby-note{display:none!important}
+
+html[data-ui-layout="phone-landscape"] #scoreBar .score-name{font-size:8px!important}
+html[data-ui-layout="phone-landscape"] #scoreBar .score-value{font-size:10px!important}
+html[data-ui-layout="phone-landscape"] #log{top:377px!important;height:12px!important;font-size:7px!important;line-height:11px!important}
+html[data-ui-layout="phone-landscape"] #advisorPanel .advisor-controls select,
+html[data-ui-layout="phone-landscape"] #advisorPanel .advisor-controls button{min-width:40px!important;height:40px!important;padding:3px!important;font-size:8px!important}
+html[data-ui-layout="phone-landscape"] #advisorPanel .advisor-head{min-height:54px!important;padding:7px 8px!important}
+html[data-ui-layout="phone-landscape"] #advisorPanel .advisor-sub{font-size:8px!important;line-height:1.25!important}
+
+/* Landscape dialogs keep the primary exit/action visible. */
+html[data-ui-layout="phone-landscape"] #modal{padding:6px!important;align-items:center!important}
+html[data-ui-layout="phone-landscape"] #modal .box{max-height:calc(100dvh - 12px)!important;overflow:auto!important;padding:16px!important}
+html[data-ui-layout="phone-landscape"] #modal .rule-list{max-height:calc(100dvh - 112px)!important;overflow:auto!important;padding-bottom:50px!important}
+html[data-ui-layout="phone-landscape"] #modal .box>button:last-child{position:sticky!important;bottom:0!important;min-height:42px!important;z-index:3!important}
+html[data-ui-layout="phone-landscape"] #modal .review-box{width:calc(100vw - 12px)!important;max-width:none!important;height:calc(100dvh - 12px)!important;display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto!important}
+html[data-ui-layout="phone-landscape"] .review-headline{grid-template-columns:58px 1fr 120px!important}.review-grade{width:56px!important;height:56px!important}.review-title h2{font-size:20px!important}
+html[data-ui-layout="phone-landscape"] .review-metrics{grid-template-columns:repeat(4,1fr)!important}.review-main-grid{grid-template-columns:1.4fr .65fr!important;min-height:0!important}.review-actions button{min-height:42px!important}
+
+@media (max-width:350px) and (orientation:portrait){
+  html[data-ui-layout="phone-portrait"] #lobby .lobby-head .lobby-en{font-size:15px!important}
+  html[data-ui-layout="phone-portrait"] #lobby .mode-card{min-height:284px!important}
+  html[data-ui-layout="phone-portrait"] #modal .review-box{max-width:calc(100vw - 12px)!important}
+}
+html[data-ui-layout="phone-portrait"] #lobby .mobile-theme-panel select{width:100%!important;min-height:44px!important;padding:6px 8px!important;font-size:11px!important;background:#f2eee3!important;color:#111!important}
+html[data-ui-layout="phone-landscape"] #advisorPanel .advisor-controls select,
+html[data-ui-layout="phone-landscape"] #advisorPanel .advisor-controls button{min-width:44px!important;height:44px!important}
