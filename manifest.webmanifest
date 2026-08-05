@@ -1,0 +1,12 @@
+{
+  "name": "赤锋牌局 · 四川麻将",
+  "short_name": "赤锋牌局",
+  "description": "本地四人四川麻将与传统麻将牌局",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#070809",
+  "theme_color": "#0f3a27"
+}
