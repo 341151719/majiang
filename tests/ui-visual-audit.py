@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 import sys
+from math import hypot
 from pathlib import Path
 
 try:
@@ -26,6 +27,30 @@ except ImportError as exc:
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "test-artifacts" / "ui-visual-audit"
 OUTPUT.mkdir(parents=True, exist_ok=True)
+
+TURBO_5_MAX = {
+    "panelPhysicalWidth": 2772,
+    "panelPhysicalHeight": 1280,
+    "diagonalInches": 6.83,
+    # DPR4 gives an exact integer CSS mapping of the native 2772×1280 panel.
+    "panelDpr": 4,
+    "panelCssWidth": 693,
+    "panelCssHeight": 320,
+    # DPR3 covers the common browser-sized logical viewport after system chrome.
+    "browserDpr": 3,
+    "browserCssWidth": 844,
+    "browserCssHeight": 390,
+}
+TURBO_5_MAX["ppi"] = hypot(TURBO_5_MAX["panelPhysicalWidth"], TURBO_5_MAX["panelPhysicalHeight"]) / TURBO_5_MAX["diagonalInches"]
+
+
+def physical_measure(css_px: float, dpr: float = 3, ppi: float = TURBO_5_MAX["ppi"]) -> dict:
+    physical_px = css_px * dpr
+    return {
+        "cssPx": round(css_px, 2),
+        "physicalPx": round(physical_px, 2),
+        "millimetres": round(physical_px / ppi * 25.4, 2),
+    }
 
 
 def inline_application() -> str:
@@ -91,8 +116,22 @@ def overlaps(a: dict, b: dict, gap: float = 0) -> bool:
     )
 
 
-async def new_page(browser, html: str, width: int, height: int, device_scale_factor: int = 1):
-    page = await browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=device_scale_factor)
+async def new_page(
+    browser,
+    html: str,
+    width: int,
+    height: int,
+    device_scale_factor: int = 1,
+    *,
+    is_mobile: bool = False,
+    has_touch: bool = False,
+):
+    page = await browser.new_page(
+        viewport={"width": width, "height": height},
+        device_scale_factor=device_scale_factor,
+        is_mobile=is_mobile,
+        has_touch=has_touch,
+    )
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     await page.emulate_media(reduced_motion="reduce")
@@ -135,6 +174,25 @@ async def render_stress_melds(page):
         }"""
     )
     await page.wait_for_timeout(1000)
+
+
+async def render_late_round_state(page):
+    """Populate a sustained-play state with exposed sets and full discard rivers."""
+    await page.evaluate(
+        """() => {
+          state.players.forEach((player, pid) => {
+            player.melds = [
+              {type:'pong',tile:(pid * 3) % 27},
+              {type:'ming',tile:27 + (pid % 7)}
+            ];
+            player.hand = Array.from({length:7}, (_, index) => (pid * 7 + index) % 34);
+            player.discards = Array.from({length:12}, (_, index) => (pid * 9 + index * 2) % 34);
+          });
+          state.lastDiscFrom=2;
+          for (let redraw = 0; redraw < 20; redraw++) renderAll();
+        }"""
+    )
+    await page.wait_for_timeout(250)
 
 
 async def collect_meld_metrics(page):
@@ -208,7 +266,7 @@ async def audit() -> dict:
         await page.close()
 
         # Phone landscape lobby.
-        page, errors = await new_page(browser, html, 844, 390)
+        page, errors = await new_page(browser, html, 844, 390, device_scale_factor=TURBO_5_MAX["browserDpr"])
         await page.screenshot(path=str(OUTPUT / "phone-landscape-lobby.png"))
         selectors = ["#lobby .mode-grid", "#lobby .lobby-compare", "#lobby .start-match-btn", "#lobby .lobby-difficulty"]
         rects = {selector: await visible_rect(page, selector) for selector in selectors}
@@ -307,7 +365,7 @@ async def audit() -> dict:
         await page.close()
 
         # Landscape rules: exit control must remain visible without scrolling the whole page.
-        page, errors = await new_page(browser, html, 844, 390)
+        page, errors = await new_page(browser, html, 844, 390, device_scale_factor=TURBO_5_MAX["browserDpr"])
         await freeze_table(page)
         await render_stress_melds(page)
         landscape_meld_rack = await visible_rect(page, "#mymelds")
@@ -338,6 +396,110 @@ async def audit() -> dict:
         await page.screenshot(path=str(OUTPUT / "phone-landscape-rules.png"))
         check(not errors, f"landscape rules page errors: {errors}")
         results.append({"state": "phone-landscape-rules", "returnButton": return_button, "melds": landscape_all_meld_metrics, "errors": errors})
+        await page.close()
+
+        # Exact Redmi Turbo 5 Max panel simulation. 693×320 at DPR4 produces the
+        # native 2772×1280 raster with no rounding. Measurements use post-transform
+        # browser rectangles and the published panel PPI.
+        panel_w = TURBO_5_MAX["panelCssWidth"]
+        panel_h = TURBO_5_MAX["panelCssHeight"]
+        panel_dpr = TURBO_5_MAX["panelDpr"]
+        page, errors = await new_page(browser, html, panel_w, panel_h, panel_dpr, is_mobile=True, has_touch=True)
+        await freeze_table(page)
+        await page.evaluate(
+            """() => {
+              document.documentElement.style.setProperty('--safe-left','18px');
+              document.documentElement.style.setProperty('--safe-right','18px');
+              document.documentElement.style.setProperty('--safe-top','4px');
+              document.documentElement.style.setProperty('--safe-bottom','4px');
+              applyDisplayProfile();
+            }"""
+        )
+        await page.wait_for_timeout(150)
+        profile = await page.evaluate("window.__redEdgeDisplayProfile")
+        panel_metrics = await page.evaluate(
+            """() => {
+              const metric = selector => {
+                const el=document.querySelector(selector);
+                if(!el)return null;
+                const r=el.getBoundingClientRect(),s=getComputedStyle(el);
+                return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height,fontSize:parseFloat(s.fontSize)||0};
+              };
+              return {
+                stage:metric('#gameStage'),
+                topButton:metric('#gameStage #topbar button'),
+                handTile:metric('#gameStage #hand .tile'),
+                hand:metric('#gameStage #hand'),
+                scoreValue:metric('#gameStage #scoreBar .score-value'),
+                board:metric('#gameStage #discboard'),
+                document:{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight}
+              };
+            }"""
+        )
+        check(profile["layout"] == "phone-landscape", f"Turbo 5 Max panel should select phone-landscape: {profile}")
+        check(profile["physicalWidth"] == 2772 and profile["physicalHeight"] == 1280, f"Turbo 5 Max exact raster mismatch: {profile}")
+        check(profile["safeArea"] == {"left": 18, "right": 18, "top": 4, "bottom": 4}, f"Turbo safe-area simulation was not applied: {profile}")
+        check(bool(profile["audit"]["ok"]), f"Turbo 5 Max built-in stage audit failed: {profile['audit']}")
+        check(bool(panel_metrics["stage"] and within(panel_metrics["stage"], panel_w, panel_h)), f"Turbo stage leaves safe viewport: {panel_metrics['stage']}")
+        check(panel_metrics["document"]["width"] <= panel_w and panel_metrics["document"]["height"] <= panel_h, f"Turbo page scrolls: {panel_metrics['document']}")
+
+        top_button_mm = physical_measure(panel_metrics["topButton"]["width"], panel_dpr)
+        tile_width_mm = physical_measure(panel_metrics["handTile"]["width"], panel_dpr)
+        tile_height_mm = physical_measure(panel_metrics["handTile"]["height"], panel_dpr)
+        check(top_button_mm["millimetres"] >= 9.0, f"Turbo top control is under 9mm: {top_button_mm}")
+        check(tile_width_mm["millimetres"] >= 7.5, f"Turbo hand tile is too narrow: {tile_width_mm}")
+        check(tile_height_mm["millimetres"] >= 10.0, f"Turbo hand tile is too short: {tile_height_mm}")
+        check(panel_metrics["scoreValue"]["fontSize"] >= 11, f"Turbo score text is below 11 authored CSS px: {panel_metrics['scoreValue']}")
+        check(not errors, f"Turbo 5 Max panel page errors: {errors}")
+        await page.screenshot(path=str(OUTPUT / "turbo5max-panel-2772x1280-safe-area.png"))
+
+        # The original regression appeared only after sustained play. Exercise a
+        # realistic late-round river plus two exposed melds for every seat.
+        await render_late_round_state(page)
+        late_round_audit = await page.evaluate("window.__auditRedEdgeMobile()")
+        late_round_melds = await collect_meld_metrics(page)
+        river_labels = await page.evaluate(
+            """() => [...document.querySelectorAll('#discboard .dzone')].map(zone => {
+              const rect = el => {const r=el.getBoundingClientRect();return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};
+              return {player:zone.dataset.player,label:rect(zone.querySelector('.dz-title')),tiles:rect(zone.querySelector('.dtiles'))};
+            })"""
+        )
+        check(late_round_audit["ok"], f"Turbo late-round geometry failed: {late_round_audit}")
+        for river in river_labels:
+            check(not overlaps(river["label"], river["tiles"]), f"Turbo river label overlaps discard tiles: {river}")
+        for seat, metrics in late_round_melds["seats"].items():
+            check(metrics["allSmall"], f"Turbo late-round {seat} melds are not compact: {metrics}")
+            for tile in metrics["tiles"]:
+                check(not overlaps(tile, late_round_melds["board"]), f"Turbo late-round {seat} meld covers river: tile={tile}, board={late_round_melds['board']}")
+        await page.screenshot(path=str(OUTPUT / "turbo5max-late-round-stress.png"))
+        results.append({
+            "state": "redmi-turbo-5-max-panel",
+            "device": TURBO_5_MAX,
+            "simulationNote": "693×320 CSS at DPR4 produces the exact 2772×1280 native panel raster; 844×390 at DPR3 separately covers the conservative browser viewport.",
+            "profile": profile,
+            "metrics": panel_metrics,
+            "physical": {"topButtonWidth": top_button_mm, "handTileWidth": tile_width_mm, "handTileHeight": tile_height_mm},
+            "lateRound": {"audit": late_round_audit, "melds": late_round_melds, "riverLabels": river_labels},
+            "errors": errors,
+        })
+        await page.close()
+
+        # Real mobile context must present an orientation gate in portrait and
+        # clear it after a manual rotation. Automatic orientation lock itself is
+        # browser/OS policy and is intentionally treated as progressive enhancement.
+        page, errors = await new_page(browser, html, 390, 844, TURBO_5_MAX["browserDpr"], is_mobile=True, has_touch=True)
+        gate_visible = await page.eval_on_selector("#orientationGate", "el=>!el.hidden")
+        gate_state = await page.evaluate("window.__redEdgeLandscapeExperience?.state")
+        check(gate_visible and gate_state["phone"] and gate_state["portrait"], f"portrait mobile orientation gate did not open: {gate_state}")
+        await page.screenshot(path=str(OUTPUT / "turbo5max-orientation-gate.png"))
+        await page.set_viewport_size({"width": 844, "height": 390})
+        await page.wait_for_timeout(180)
+        rotated_gate_visible = await page.eval_on_selector("#orientationGate", "el=>!el.hidden")
+        rotated_layout = await page.evaluate("document.documentElement.dataset.uiLayout")
+        check(not rotated_gate_visible, "orientation gate remained open after landscape rotation")
+        check(rotated_layout == "phone-landscape", f"manual rotation did not select phone-landscape: {rotated_layout}")
+        check(not errors, f"Turbo orientation gate page errors: {errors}")
+        results.append({"state": "redmi-turbo-5-max-orientation", "portraitGate": gate_visible, "portraitState": gate_state, "landscapeGate": rotated_gate_visible, "landscapeLayout": rotated_layout, "errors": errors})
         await page.close()
 
         # Narrow portrait catches fixed-width regressions.
