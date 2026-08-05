@@ -424,8 +424,8 @@ function renderAll(){
       +(p.done?'<span class="badge hu">已胡 '+p.huInfo.tags.join('·')+'</span>':'')
       +(state.turn===i&&!p.done?'<span class="badge turn">出牌</span>':'');
     el.appendChild(nm);
-    const md=document.createElement('div'); md.className='melds'; p.melds.forEach(m=>md.appendChild(meldEl(m))); el.appendChild(md);
     if(i!==0){
+      const md=document.createElement('div'); md.className='melds exposed-melds'; p.melds.forEach(m=>md.appendChild(meldEl(m))); el.appendChild(md);
       const hd=document.createElement('div'); hd.className='melds';
       if(p.done) p.hand.forEach(t=>hd.appendChild(tileEl(t,true)));
       else for(let k=0;k<p.hand.length;k++){ const b=document.createElement('div'); b.className='tback'; hd.appendChild(b); }

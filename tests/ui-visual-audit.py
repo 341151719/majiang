@@ -91,8 +91,8 @@ def overlaps(a: dict, b: dict, gap: float = 0) -> bool:
     )
 
 
-async def new_page(browser, html: str, width: int, height: int):
-    page = await browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=1)
+async def new_page(browser, html: str, width: int, height: int, device_scale_factor: int = 1):
+    page = await browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=device_scale_factor)
     errors: list[str] = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     await page.emulate_media(reduced_motion="reduce")
@@ -113,6 +113,65 @@ async def freeze_table(page):
     await page.wait_for_timeout(150)
 
 
+async def render_stress_melds(page):
+    """Render every meld family for all seats and survive repeated live redraws."""
+    await page.evaluate(
+        """() => {
+          const melds = [
+            {type:'chi',tiles:[0,1,2]},
+            {type:'pong',tile:9},
+            {type:'ming',tile:18},
+            {type:'an',tile:27}
+          ];
+          state.players.forEach((player, pid) => {
+            player.melds = melds.map((meld, index) => ({
+              ...meld,
+              type: pid === 3 && index === 3 ? 'bu' : meld.type,
+              tiles: meld.tiles && meld.tiles.slice()
+            }));
+            player.hand = [3, 4];
+          });
+          for (let redraw = 0; redraw < 20; redraw++) renderAll();
+        }"""
+    )
+    await page.wait_for_timeout(1000)
+
+
+async def collect_meld_metrics(page):
+    return await page.evaluate(
+        """() => {
+          const rect = el => {
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height};
+          };
+          const selectors = {
+            self: '#mymelds',
+            right: '#opp1 > .exposed-melds',
+            top: '#opp2 > .exposed-melds',
+            left: '#opp3 > .exposed-melds'
+          };
+          const seats = Object.fromEntries(Object.entries(selectors).map(([name, selector]) => {
+            const rack = document.querySelector(selector);
+            const tiles = [...document.querySelectorAll(selector + ' .tile')];
+            return [name, {
+              selector,
+              rack: rect(rack),
+              tileCount: tiles.length,
+              allSmall: tiles.length > 0 && tiles.every(tile => tile.classList.contains('small')),
+              tiles: tiles.map(rect)
+            }];
+          }));
+          return {
+            seats,
+            duplicateSelfRacks: document.querySelectorAll('#opp0 > .exposed-melds').length,
+            viewport: {width:innerWidth,height:innerHeight},
+            board: rect(document.getElementById('discboard'))
+          };
+        }"""
+    )
+
+
 async def audit() -> dict:
     html = inline_application()
     results: list[dict] = []
@@ -130,7 +189,7 @@ async def audit() -> dict:
         browser = await playwright.chromium.launch(**launch)
 
         # Phone portrait lobby.
-        page, errors = await new_page(browser, html, 390, 844)
+        page, errors = await new_page(browser, html, 390, 844, device_scale_factor=3)
         await page.screenshot(path=str(OUTPUT / "phone-portrait-lobby.png"))
         layout = await page.evaluate("document.documentElement.dataset.uiLayout")
         header = await visible_rect(page, "#lobby .lobby-head")
@@ -161,7 +220,7 @@ async def audit() -> dict:
         await page.close()
 
         # Portrait table and advisor.
-        page, errors = await new_page(browser, html, 390, 844)
+        page, errors = await new_page(browser, html, 390, 844, device_scale_factor=3)
         await freeze_table(page)
         await page.screenshot(path=str(OUTPUT / "phone-portrait-table.png"))
         built_in = await page.evaluate("window.__auditRedEdgeVia?.() || null")
@@ -169,22 +228,11 @@ async def audit() -> dict:
         check(bool(top_button and top_button["width"] >= 44 and top_button["height"] >= 44), "portrait top toolbar control is below 44px")
         check(not built_in or built_in.get("ok", False), f"built-in portrait layout audit failed: {built_in}")
 
-        # Regression: self chi/pong/gang melds must use compact tiles and stay out of the hand.
-        await page.evaluate(
-            """() => {
-              state.players[0].melds=[
-                {type:'chi',tiles:[0,1,2]},
-                {type:'pong',tile:9},
-                {type:'ming',tile:18},
-                {type:'an',tile:27}
-              ];
-              state.players[0].hand=[3,4];
-              renderAll();
-            }"""
-        )
-        await page.wait_for_timeout(30)
+        # Regression: all four seats must keep exposed melds compact after sustained redraws.
+        await render_stress_melds(page)
         meld_rack = await visible_rect(page, "#mymelds")
         meld_hand = await visible_rect(page, "#hand")
+        all_meld_metrics = await collect_meld_metrics(page)
         meld_metrics = await page.eval_on_selector(
             "#mymelds",
             "el=>({count:el.dataset.meldCount,clientWidth:el.clientWidth,scrollWidth:el.scrollWidth,clientHeight:el.clientHeight,scrollHeight:el.scrollHeight})",
@@ -194,7 +242,15 @@ async def audit() -> dict:
         check(meld_metrics["count"] == "4", f"self meld count metadata is wrong: {meld_metrics}")
         check(meld_metrics["scrollWidth"] <= meld_metrics["clientWidth"] + 1 and meld_metrics["scrollHeight"] <= meld_metrics["clientHeight"] + 1, f"portrait self meld rack clips content: {meld_metrics}")
         check(bool(meld_rack and meld_hand and not overlaps(meld_rack, meld_hand)), f"portrait self meld rack overlaps hand: rack={meld_rack}, hand={meld_hand}")
-        await page.screenshot(path=str(OUTPUT / "phone-portrait-self-melds.png"))
+        check(all_meld_metrics["duplicateSelfRacks"] == 0, f"self melds are duplicated inside #opp0: {all_meld_metrics}")
+        for seat, metrics in all_meld_metrics["seats"].items():
+            check(metrics["allSmall"], f"portrait {seat} exposed melds are not compact: {metrics}")
+            check(metrics["tileCount"] == 14, f"portrait {seat} exposed meld tile count is wrong: {metrics}")
+            for tile in metrics["tiles"]:
+                check(tile["width"] <= 30 and tile["height"] <= 40, f"portrait {seat} meld tile is oversized: {tile}")
+                check(within(tile, 390, 844), f"portrait {seat} meld tile leaves viewport: {tile}")
+                check(not overlaps(tile, all_meld_metrics["board"]), f"portrait {seat} meld tile covers the discard board: tile={tile}, board={all_meld_metrics['board']}")
+        await page.screenshot(path=str(OUTPUT / "phone-portrait-all-melds.png"))
         await freeze_table(page)
 
         await page.evaluate(
@@ -246,28 +302,17 @@ async def audit() -> dict:
         check(all(r["height"] >= 44 for r in action_rects), f"review actions below 44px: {action_rects}")
         check(side_display == "none", "desktop review side panel should be collapsed on phone")
         await page.screenshot(path=str(OUTPUT / "phone-portrait-review.png"))
-        results.append({"state": "phone-portrait-game", "topButton": top_button, "advisorControls": controls, "reviewBox": review_box, "reviewTitle": title, "reviewActions": action_rects, "builtIn": built_in, "errors": errors})
+        results.append({"state": "phone-portrait-game", "topButton": top_button, "advisorControls": controls, "melds": all_meld_metrics, "reviewBox": review_box, "reviewTitle": title, "reviewActions": action_rects, "builtIn": built_in, "errors": errors})
         check(not errors, f"portrait game page errors: {errors}")
         await page.close()
 
         # Landscape rules: exit control must remain visible without scrolling the whole page.
         page, errors = await new_page(browser, html, 844, 390)
         await freeze_table(page)
-        await page.evaluate(
-            """() => {
-              state.players[0].melds=[
-                {type:'chi',tiles:[0,1,2]},
-                {type:'pong',tile:9},
-                {type:'ming',tile:18},
-                {type:'bu',tile:27}
-              ];
-              state.players[0].hand=[3,4];
-              renderAll();
-            }"""
-        )
-        await page.wait_for_timeout(30)
+        await render_stress_melds(page)
         landscape_meld_rack = await visible_rect(page, "#mymelds")
         landscape_hand = await visible_rect(page, "#hand")
+        landscape_all_meld_metrics = await collect_meld_metrics(page)
         landscape_meld_metrics = await page.eval_on_selector(
             "#mymelds",
             "el=>({count:el.dataset.meldCount,clientWidth:el.clientWidth,scrollWidth:el.scrollWidth,clientHeight:el.clientHeight,scrollHeight:el.scrollHeight})",
@@ -276,7 +321,15 @@ async def audit() -> dict:
         check(landscape_meld_small, "landscape self meld tiles are not compact")
         check(landscape_meld_metrics["scrollWidth"] <= landscape_meld_metrics["clientWidth"] + 1 and landscape_meld_metrics["scrollHeight"] <= landscape_meld_metrics["clientHeight"] + 1, f"landscape self meld rack clips content: {landscape_meld_metrics}")
         check(bool(landscape_meld_rack and landscape_hand and not overlaps(landscape_meld_rack, landscape_hand)), f"landscape self meld rack overlaps hand: rack={landscape_meld_rack}, hand={landscape_hand}")
-        await page.screenshot(path=str(OUTPUT / "phone-landscape-self-melds.png"))
+        check(landscape_all_meld_metrics["duplicateSelfRacks"] == 0, f"landscape self melds are duplicated inside #opp0: {landscape_all_meld_metrics}")
+        for seat, metrics in landscape_all_meld_metrics["seats"].items():
+            check(metrics["allSmall"], f"landscape {seat} exposed melds are not compact: {metrics}")
+            check(metrics["tileCount"] == 14, f"landscape {seat} exposed meld tile count is wrong: {metrics}")
+            for tile in metrics["tiles"]:
+                check(tile["width"] <= 30 and tile["height"] <= 40, f"landscape {seat} meld tile is oversized: {tile}")
+                check(within(tile, 844, 390), f"landscape {seat} meld tile leaves viewport: {tile}")
+                check(not overlaps(tile, landscape_all_meld_metrics["board"]), f"landscape {seat} meld tile covers the discard board: tile={tile}, board={landscape_all_meld_metrics['board']}")
+        await page.screenshot(path=str(OUTPUT / "phone-landscape-all-melds.png"))
         await freeze_table(page)
         await page.evaluate("showRules();window.__refreshRedEdgeUiSemantics?.()")
         await page.wait_for_timeout(50)
@@ -284,7 +337,7 @@ async def audit() -> dict:
         check(bool(return_button and within(return_button, 844, 390)), f"landscape rules return button is clipped: {return_button}")
         await page.screenshot(path=str(OUTPUT / "phone-landscape-rules.png"))
         check(not errors, f"landscape rules page errors: {errors}")
-        results.append({"state": "phone-landscape-rules", "returnButton": return_button, "errors": errors})
+        results.append({"state": "phone-landscape-rules", "returnButton": return_button, "melds": landscape_all_meld_metrics, "errors": errors})
         await page.close()
 
         # Narrow portrait catches fixed-width regressions.
