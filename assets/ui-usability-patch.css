@@ -124,3 +124,45 @@ html[data-ui-layout="phone-landscape"] .review-metrics{grid-template-columns:rep
 html[data-ui-layout="phone-portrait"] #lobby .mobile-theme-panel select{width:100%!important;min-height:44px!important;padding:6px 8px!important;font-size:11px!important;background:#f2eee3!important;color:#111!important}
 html[data-ui-layout="phone-landscape"] #advisorPanel .advisor-controls select,
 html[data-ui-layout="phone-landscape"] #advisorPanel .advisor-controls button{min-width:44px!important;height:44px!important}
+
+/* Self meld rack regression fix. The local player previously rendered melds as
+   normal-size tiles even though both phone HUDs reserve a compact meld shelf. */
+html[data-ui-layout="phone-portrait"] #gameStage #mymelds,
+html[data-ui-layout="phone-landscape"] #gameStage #mymelds{
+  flex-wrap:nowrap!important;
+  align-items:flex-start!important;
+  justify-content:flex-start!important;
+  gap:2px!important;
+}
+html[data-ui-layout="phone-portrait"] #gameStage #mymelds .meld,
+html[data-ui-layout="phone-landscape"] #gameStage #mymelds .meld{
+  flex:0 0 auto!important;
+  padding:2px!important;
+  gap:0!important;
+  margin:0!important;
+}
+
+/* Portrait rack: 276 CSS px wide / 42 px high in the Via profile. */
+html[data-ui-layout="phone-portrait"] #gameStage #mymelds .tile.small{
+  --tile-w:22px!important;
+  --tile-h:29px!important;
+}
+html[data-ui-layout="phone-portrait"] #gameStage #mymelds[data-meld-count="3"] .tile.small{
+  --tile-w:20px!important;
+  --tile-h:27px!important;
+}
+html[data-ui-layout="phone-portrait"] #gameStage #mymelds[data-meld-count="4"] .tile.small{
+  --tile-w:15px!important;
+  --tile-h:20px!important;
+}
+
+/* Landscape starts with a 180 CSS-px rack. As exposed-set count increases,
+   the concealed hand necessarily shrinks, so transfer that freed width to the rack. */
+html[data-ui-layout="phone-landscape"] #gameStage #mymelds .tile.small{
+  --tile-w:17px!important;
+  --tile-h:23px!important;
+}
+html[data-ui-layout="phone-landscape"] #gameStage #mymelds[data-meld-count="3"]{width:260px!important}
+html[data-ui-layout="phone-landscape"] #gameStage #mymelds[data-meld-count="3"] ~ #hand{left:370px!important}
+html[data-ui-layout="phone-landscape"] #gameStage #mymelds[data-meld-count="4"]{width:320px!important}
+html[data-ui-layout="phone-landscape"] #gameStage #mymelds[data-meld-count="4"] ~ #hand{left:430px!important}

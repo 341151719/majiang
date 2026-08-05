@@ -169,6 +169,34 @@ async def audit() -> dict:
         check(bool(top_button and top_button["width"] >= 44 and top_button["height"] >= 44), "portrait top toolbar control is below 44px")
         check(not built_in or built_in.get("ok", False), f"built-in portrait layout audit failed: {built_in}")
 
+        # Regression: self chi/pong/gang melds must use compact tiles and stay out of the hand.
+        await page.evaluate(
+            """() => {
+              state.players[0].melds=[
+                {type:'chi',tiles:[0,1,2]},
+                {type:'pong',tile:9},
+                {type:'ming',tile:18},
+                {type:'an',tile:27}
+              ];
+              state.players[0].hand=[3,4];
+              renderAll();
+            }"""
+        )
+        await page.wait_for_timeout(30)
+        meld_rack = await visible_rect(page, "#mymelds")
+        meld_hand = await visible_rect(page, "#hand")
+        meld_metrics = await page.eval_on_selector(
+            "#mymelds",
+            "el=>({count:el.dataset.meldCount,clientWidth:el.clientWidth,scrollWidth:el.scrollWidth,clientHeight:el.clientHeight,scrollHeight:el.scrollHeight})",
+        )
+        meld_tiles_small = await page.eval_on_selector_all("#mymelds .tile", "els=>els.every(el=>el.classList.contains('small'))")
+        check(meld_tiles_small, "self meld tiles are not rendered with compact .small geometry")
+        check(meld_metrics["count"] == "4", f"self meld count metadata is wrong: {meld_metrics}")
+        check(meld_metrics["scrollWidth"] <= meld_metrics["clientWidth"] + 1 and meld_metrics["scrollHeight"] <= meld_metrics["clientHeight"] + 1, f"portrait self meld rack clips content: {meld_metrics}")
+        check(bool(meld_rack and meld_hand and not overlaps(meld_rack, meld_hand)), f"portrait self meld rack overlaps hand: rack={meld_rack}, hand={meld_hand}")
+        await page.screenshot(path=str(OUTPUT / "phone-portrait-self-melds.png"))
+        await freeze_table(page)
+
         await page.evaluate(
             """() => {
               advisor.panelOpen=true;
@@ -224,6 +252,31 @@ async def audit() -> dict:
 
         # Landscape rules: exit control must remain visible without scrolling the whole page.
         page, errors = await new_page(browser, html, 844, 390)
+        await freeze_table(page)
+        await page.evaluate(
+            """() => {
+              state.players[0].melds=[
+                {type:'chi',tiles:[0,1,2]},
+                {type:'pong',tile:9},
+                {type:'ming',tile:18},
+                {type:'bu',tile:27}
+              ];
+              state.players[0].hand=[3,4];
+              renderAll();
+            }"""
+        )
+        await page.wait_for_timeout(30)
+        landscape_meld_rack = await visible_rect(page, "#mymelds")
+        landscape_hand = await visible_rect(page, "#hand")
+        landscape_meld_metrics = await page.eval_on_selector(
+            "#mymelds",
+            "el=>({count:el.dataset.meldCount,clientWidth:el.clientWidth,scrollWidth:el.scrollWidth,clientHeight:el.clientHeight,scrollHeight:el.scrollHeight})",
+        )
+        landscape_meld_small = await page.eval_on_selector_all("#mymelds .tile", "els=>els.every(el=>el.classList.contains('small'))")
+        check(landscape_meld_small, "landscape self meld tiles are not compact")
+        check(landscape_meld_metrics["scrollWidth"] <= landscape_meld_metrics["clientWidth"] + 1 and landscape_meld_metrics["scrollHeight"] <= landscape_meld_metrics["clientHeight"] + 1, f"landscape self meld rack clips content: {landscape_meld_metrics}")
+        check(bool(landscape_meld_rack and landscape_hand and not overlaps(landscape_meld_rack, landscape_hand)), f"landscape self meld rack overlaps hand: rack={landscape_meld_rack}, hand={landscape_hand}")
+        await page.screenshot(path=str(OUTPUT / "phone-landscape-self-melds.png"))
         await freeze_table(page)
         await page.evaluate("showRules();window.__refreshRedEdgeUiSemantics?.()")
         await page.wait_for_timeout(50)

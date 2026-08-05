@@ -448,7 +448,11 @@ function renderAll(){
     });
     z.appendChild(dt); db.appendChild(z);
   });
-  const mm=document.getElementById('mymelds'); mm.innerHTML=''; state.players[0].melds.forEach(m=>mm.appendChild(meldEl(m,false)));
+  const mm=document.getElementById('mymelds');
+  const selfMelds=state.players[0].melds;
+  mm.innerHTML='';
+  mm.dataset.meldCount=String(selfMelds.length);
+  selfMelds.forEach(m=>mm.appendChild(meldEl(m,true)));
   renderHand();
   motionNotifyRender();
   if(advisor.mode!=='off'&&!state.awaitDiscard&&!advisor.pendingActionContext){ advisor.analysis=null; renderAdvisor(); }
